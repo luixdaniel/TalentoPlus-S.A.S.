@@ -1,0 +1,176 @@
+@page
+@model TalentoPlus_S.A.S.ll.Web.Areas.Admin.Pages.Employees.ImportModel
+@{
+    ViewData["Title"] = "Importar Empleados desde Excel";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-10 offset-md-1">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h2 class="mb-0">
+                        <i class="bi bi-file-earmark-excel"></i> Importar Empleados desde Excel
+                    </h2>
+                </div>
+                <div class="card-body">
+                    
+                    @if (Model.ImportResult != null)
+                    {
+                        @if (Model.ImportResult.Success)
+                        {
+                            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                <h5><i class="bi bi-check-circle-fill"></i> Importación Completada</h5>
+                                <hr />
+                                <ul class="mb-0">
+                                    <li><strong>Total de registros procesados:</strong> @Model.ImportResult.TotalRows</li>
+                                    <li><strong>Empleados nuevos:</strong> @Model.ImportResult.SuccessfulImports</li>
+                                    <li><strong>Empleados actualizados:</strong> @Model.ImportResult.UpdatedRecords</li>
+                                    @if (Model.ImportResult.FailedImports > 0)
+                                    {
+                                        <li class="text-danger"><strong>Registros fallidos:</strong> @Model.ImportResult.FailedImports</li>
+                                    }
+                                </ul>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                <h5><i class="bi bi-exclamation-triangle-fill"></i> Error en la Importación</h5>
+                                <hr />
+                                <ul class="mb-0">
+                                    @foreach (var error in Model.ImportResult.Errors)
+                                    {
+                                        <li>@error</li>
+                                    }
+                                </ul>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        }
+
+                        @if (Model.ImportResult.Warnings.Any())
+                        {
+                            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                                <h6><i class="bi bi-exclamation-circle"></i> Advertencias:</h6>
+                                <ul class="mb-0">
+                                    @foreach (var warning in Model.ImportResult.Warnings)
+                                    {
+                                        <li>@warning</li>
+                                    }
+                                </ul>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        }
+                    }
+
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <h5><i class="bi bi-info-circle"></i> Instrucciones</h5>
+                            <ol>
+                                <li>El archivo Excel debe tener las siguientes columnas en este orden:</li>
+                                <ul>
+                                    <li>Nombres</li>
+                                    <li>Apellidos</li>
+                                    <li>Email</li>
+                                    <li>Teléfono</li>
+                                    <li>Dirección</li>
+                                    <li>Fecha de Nacimiento</li>
+                                    <li>Fecha de Ingreso</li>
+                                    <li>Cargo</li>
+                                    <li>Salario</li>
+                                    <li>Estado (Activo/Inactivo/Vacaciones)</li>
+                                    <li>Nivel Educativo (Profesional/Tecnólogo/Maestría/Especialización)</li>
+                                    <li>Departamento (Logística/Marketing/Recursos Humanos/Operaciones)</li>
+                                    <li>Perfil Profesional (opcional)</li>
+                                </ul>
+                                <li>La primera fila debe contener los encabezados</li>
+                                <li>Si un empleado ya existe (mismo email), se actualizará su información</li>
+                                <li>El departamento debe existir previamente en el sistema</li>
+                            </ol>
+                        </div>
+                    </div>
+
+                    <form method="post" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="excelFile" class="form-label">
+                                <i class="bi bi-upload"></i> Seleccionar archivo Excel (.xlsx)
+                            </label>
+                            <input type="file" 
+                                   class="form-control" 
+                                   id="excelFile" 
+                                   name="excelFile" 
+                                   accept=".xlsx,.xls" 
+                                   required />
+                            <div class="form-text">
+                                Formatos soportados: .xlsx, .xls (máximo 10 MB)
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a asp-page="Index" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Volver al Listado
+                            </a>
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="bi bi-upload"></i> Importar Empleados
+                            </button>
+                        </div>
+                    </form>
+
+                    @if (Model.ImportResult?.ImportedEmployees.Any() == true)
+                    {
+                        <hr class="my-4" />
+                        <h5><i class="bi bi-list-check"></i> Empleados Importados/Actualizados (@Model.ImportResult.ImportedEmployees.Count)</h5>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Nombre Completo</th>
+                                        <th>Email</th>
+                                        <th>Cargo</th>
+                                        <th>Departamento</th>
+                                        <th>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var emp in Model.ImportResult.ImportedEmployees.Take(50))
+                                    {
+                                        <tr>
+                                            <td>@emp.FullName</td>
+                                            <td>@emp.Email</td>
+                                            <td>@emp.Position</td>
+                                            <td>@emp.Department?.Name</td>
+                                            <td>
+                                                @if (emp.Status == TalentoPlus_S.A.S.ll.Web.Data.Entities.EmployeeStatus.Active)
+                                                {
+                                                    <span class="badge bg-success">Activo</span>
+                                                }
+                                                else if (emp.Status == TalentoPlus_S.A.S.ll.Web.Data.Entities.EmployeeStatus.Inactive)
+                                                {
+                                                    <span class="badge bg-danger">Inactivo</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-warning">Vacaciones</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                            @if (Model.ImportResult.ImportedEmployees.Count > 50)
+                            {
+                                <p class="text-muted">Mostrando los primeros 50 de @Model.ImportResult.ImportedEmployees.Count empleados</p>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+}
+
