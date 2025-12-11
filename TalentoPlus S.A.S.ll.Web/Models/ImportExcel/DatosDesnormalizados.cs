@@ -1,4 +1,4 @@
-namespace TalentoPlus_S.A.S.ll.Web.Areas.Admin.Models
+namespace TalentoPlus_S.A.S.ll.Web.Models.ImportExcel
 {
     /// <summary>
     /// DTO para desnormalizar datos del Excel independientemente del orden de columnas

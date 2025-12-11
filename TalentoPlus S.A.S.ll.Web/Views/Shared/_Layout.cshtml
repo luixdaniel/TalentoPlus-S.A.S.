@@ -1,4 +1,4 @@
-﻿﻿<!DOCTYPE html>
+﻿﻿﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="utf-8"/>
@@ -30,12 +30,17 @@
                     @if (User.Identity?.IsAuthenticated == true)
                     {
                         <li class="nav-item">
-                            <a class="nav-link text-white" asp-area="Admin" asp-page="/Employees/Index">
+                            <a class="nav-link text-white" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">
+                                <i class="fas fa-chart-line"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-white" asp-area="Admin" asp-controller="Employees" asp-action="Index">
                                 <i class="fas fa-users"></i> Empleados
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-white" asp-area="Admin" asp-page="/Departments/Index">
+                            <a class="nav-link text-white" asp-area="Admin" asp-controller="Departments" asp-action="Index">
                                 <i class="fas fa-building"></i> Departamentos
                             </a>
                         </li>

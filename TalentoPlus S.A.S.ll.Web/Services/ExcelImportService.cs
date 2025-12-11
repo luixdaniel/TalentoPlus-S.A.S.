@@ -1,5 +1,6 @@
 using OfficeOpenXml;
 using TalentoPlus_S.A.S.ll.Web.Data.Entities;
+using TalentoPlus_S.A.S.ll.Web.Models.ImportExcel;
 using TalentoPlus_S.A.S.ll.Web.Repositories;
 
 namespace TalentoPlus_S.A.S.ll.Web.Services
@@ -10,23 +11,6 @@ namespace TalentoPlus_S.A.S.ll.Web.Services
         private readonly IDepartmentRepository _departmentRepository;
         private readonly ILogger<ExcelImportService> _logger;
 
-        // Expected Excel column headers
-        private readonly Dictionary<string, int> _columnMapping = new()
-        {
-            { "Nombres", 0 },
-            { "Apellidos", 1 },
-            { "Email", 2 },
-            { "Teléfono", 3 },
-            { "Dirección", 4 },
-            { "Fecha de Nacimiento", 5 },
-            { "Fecha de Ingreso", 6 },
-            { "Cargo", 7 },
-            { "Salario", 8 },
-            { "Estado", 9 },
-            { "Nivel Educativo", 10 },
-            { "Departamento", 11 },
-            { "Perfil Profesional", 12 }
-        };
 
         public ExcelImportService(
             IEmployeeRepository employeeRepository,
@@ -41,7 +25,7 @@ namespace TalentoPlus_S.A.S.ll.Web.Services
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
         }
 
-        public async Task<ImportResult> ValidateExcelStructureAsync(Stream fileStream)
+        public Task<ImportResult> ValidateExcelStructureAsync(Stream fileStream)
         {
             var result = new ImportResult { Success = true };
 
@@ -54,20 +38,32 @@ namespace TalentoPlus_S.A.S.ll.Web.Services
                 {
                     result.Success = false;
                     result.Errors.Add("El archivo Excel no contiene hojas de trabajo");
-                    return result;
+                    return Task.FromResult(result);
                 }
 
-                // Validate headers (row 1)
-                var expectedHeaders = _columnMapping.Keys.ToList();
-                for (int col = 1; col <= expectedHeaders.Count; col++)
+                // Read headers from row 1 and create mapping directly from worksheet
+                var maxCol = worksheet.Dimension?.Columns ?? 0;
+                var mapeo = MapeoColumnasExcel.CrearDesdeWorksheet(worksheet, maxCol);
+                
+                // Count only non-empty headers for reporting
+                int headerCount = 0;
+                for (int col = 1; col <= maxCol; col++)
                 {
                     var headerValue = worksheet.Cells[1, col].Value?.ToString()?.Trim();
-                    var expectedHeader = expectedHeaders[col - 1];
-
-                    if (string.IsNullOrEmpty(headerValue) || !headerValue.Equals(expectedHeader, StringComparison.OrdinalIgnoreCase))
+                    if (!string.IsNullOrWhiteSpace(headerValue))
                     {
-                        result.Warnings.Add($"Columna {col}: Se esperaba '{expectedHeader}' pero se encontró '{headerValue}'");
+                        headerCount++;
                     }
+                }
+                result.Warnings.Add($"Se detectaron {headerCount} columnas en el archivo");
+
+                // Validate that all required columns are present
+                if (!mapeo.EsValido())
+                {
+                    result.Success = false;
+                    var faltantes = mapeo.ObtenerColumnasFaltantes();
+                    result.Errors.Add($"Faltan columnas requeridas: {string.Join(", ", faltantes)}");
+                    return Task.FromResult(result);
                 }
 
                 result.TotalRows = worksheet.Dimension?.Rows - 1 ?? 0; // Exclude header row
@@ -77,6 +73,7 @@ namespace TalentoPlus_S.A.S.ll.Web.Services
                     result.Success = false;
                     result.Errors.Add("El archivo Excel no contiene datos de empleados");
                 }
+                // El conteo de columnas ya se hace en el mapeo
             }
             catch (Exception ex)
             {
@@ -85,7 +82,7 @@ namespace TalentoPlus_S.A.S.ll.Web.Services
                 _logger.LogError(ex, "Error validating Excel file");
             }
 
-            return result;
+            return Task.FromResult(result);
         }
 
         public async Task<ImportResult> ImportEmployeesFromExcelAsync(Stream fileStream)
@@ -113,6 +110,10 @@ namespace TalentoPlus_S.A.S.ll.Web.Services
                 using var package = new ExcelPackage(fileStream);
                 var worksheet = package.Workbook.Worksheets.First();
 
+                // Create column mapping directly from worksheet
+                var maxCol = worksheet.Dimension?.Columns ?? 0;
+                var mapeo = MapeoColumnasExcel.CrearDesdeWorksheet(worksheet, maxCol);
+
                 var rowCount = worksheet.Dimension.Rows;
                 result.TotalRows = rowCount - 1; // Exclude header
 
@@ -121,7 +122,7 @@ namespace TalentoPlus_S.A.S.ll.Web.Services
                 {
                     try
                     {
-                        var employee = await ProcessEmployeeRowAsync(worksheet, row, departmentDict);
+                        var employee = await ProcessEmployeeRowAsync(worksheet, row, mapeo, departmentDict);
                         
                         if (employee != null)
                         {
@@ -180,21 +181,28 @@ namespace TalentoPlus_S.A.S.ll.Web.Services
             return result;
         }
 
-        private async Task<Employee?> ProcessEmployeeRowAsync(
+        private Task<Employee?> ProcessEmployeeRowAsync(
             ExcelWorksheet worksheet, 
             int row, 
+            MapeoColumnasExcel mapeo,
             Dictionary<string, Department> departmentDict)
         {
             var employee = new Employee();
 
-            // Required fields
-            employee.FirstName = GetCellValue(worksheet, row, 1)?.Trim() 
+            // Optional Document Number
+            if (mapeo.ColumnaDocumento.HasValue)
+            {
+                employee.DocumentNumber = GetCellValue(worksheet, row, mapeo.ColumnaDocumento.Value)?.Trim();
+            }
+
+            // Required fields usando el mapeo dinámico
+            employee.FirstName = GetCellValue(worksheet, row, mapeo.ColumnaNombres!.Value)?.Trim() 
                 ?? throw new Exception("El campo 'Nombres' es obligatorio");
             
-            employee.LastName = GetCellValue(worksheet, row, 2)?.Trim() 
+            employee.LastName = GetCellValue(worksheet, row, mapeo.ColumnaApellidos!.Value)?.Trim() 
                 ?? throw new Exception("El campo 'Apellidos' es obligatorio");
             
-            employee.Email = GetCellValue(worksheet, row, 3)?.Trim() 
+            employee.Email = GetCellValue(worksheet, row, mapeo.ColumnaEmail!.Value)?.Trim() 
                 ?? throw new Exception("El campo 'Email' es obligatorio");
             
             // Validate email format
@@ -203,21 +211,21 @@ namespace TalentoPlus_S.A.S.ll.Web.Services
                 throw new Exception($"Email inválido: {employee.Email}");
             }
 
-            employee.Phone = GetCellValue(worksheet, row, 4)?.Trim() 
+            employee.Phone = GetCellValue(worksheet, row, mapeo.ColumnaTelefono!.Value)?.Trim() 
                 ?? throw new Exception("El campo 'Teléfono' es obligatorio");
             
-            employee.Address = GetCellValue(worksheet, row, 5)?.Trim() 
-                ?? throw new Exception("El campo 'Dirección' es obligatorio");
+            employee.Address = GetCellValue(worksheet, row, mapeo.ColumnaDireccion!.Value)?.Trim() 
+                ?? throw new Exception("El campo 'Dirección' es obligatoria");
 
             // Dates
-            employee.BirthDate = ParseDate(worksheet, row, 6, "Fecha de Nacimiento");
-            employee.HireDate = ParseDate(worksheet, row, 7, "Fecha de Ingreso");
+            employee.BirthDate = ParseDate(worksheet, row, mapeo.ColumnaFechaNacimiento!.Value, "Fecha de Nacimiento");
+            employee.HireDate = ParseDate(worksheet, row, mapeo.ColumnaFechaIngreso!.Value, "Fecha de Ingreso");
 
-            employee.Position = GetCellValue(worksheet, row, 8)?.Trim() 
+            employee.Position = GetCellValue(worksheet, row, mapeo.ColumnaCargo!.Value)?.Trim() 
                 ?? throw new Exception("El campo 'Cargo' es obligatorio");
 
             // Salary
-            var salaryStr = GetCellValue(worksheet, row, 9);
+            var salaryStr = GetCellValue(worksheet, row, mapeo.ColumnaSalario!.Value);
             if (string.IsNullOrEmpty(salaryStr) || !decimal.TryParse(salaryStr.Replace("$", "").Replace(",", ""), out var salary))
             {
                 throw new Exception("El campo 'Salario' debe ser un número válido");
@@ -225,7 +233,7 @@ namespace TalentoPlus_S.A.S.ll.Web.Services
             employee.Salary = salary;
 
             // Status
-            var statusStr = GetCellValue(worksheet, row, 10)?.Trim().ToLower();
+            var statusStr = GetCellValue(worksheet, row, mapeo.ColumnaEstado!.Value)?.Trim().ToLower();
             employee.Status = statusStr switch
             {
                 "activo" => EmployeeStatus.Active,
@@ -235,10 +243,11 @@ namespace TalentoPlus_S.A.S.ll.Web.Services
             };
 
             // Education Level
-            var educationStr = GetCellValue(worksheet, row, 11)?.Trim().ToLower();
+            var educationStr = GetCellValue(worksheet, row, mapeo.ColumnaNivelEducativo!.Value)?.Trim().ToLower();
             employee.EducationLevel = educationStr switch
             {
                 "profesional" => EducationLevel.Professional,
+                "técnico" or "tecnico" => EducationLevel.Technical,
                 "tecnólogo" or "tecnologo" => EducationLevel.Technologist,
                 "maestría" or "maestria" => EducationLevel.Master,
                 "especialización" or "especializacion" => EducationLevel.Specialization,
@@ -246,7 +255,7 @@ namespace TalentoPlus_S.A.S.ll.Web.Services
             };
 
             // Department
-            var departmentName = GetCellValue(worksheet, row, 12)?.Trim().ToLower();
+            var departmentName = GetCellValue(worksheet, row, mapeo.ColumnaDepartamento!.Value)?.Trim().ToLower();
             if (string.IsNullOrEmpty(departmentName))
             {
                 throw new Exception("El campo 'Departamento' es obligatorio");
@@ -259,9 +268,12 @@ namespace TalentoPlus_S.A.S.ll.Web.Services
             employee.DepartmentId = department.Id;
 
             // Optional field
-            employee.ProfessionalProfile = GetCellValue(worksheet, row, 13)?.Trim();
+            if (mapeo.ColumnaPerfilProfesional.HasValue)
+            {
+                employee.ProfessionalProfile = GetCellValue(worksheet, row, mapeo.ColumnaPerfilProfesional.Value)?.Trim();
+            }
 
-            return employee;
+            return Task.FromResult<Employee?>(employee);
         }
 
         private string? GetCellValue(ExcelWorksheet worksheet, int row, int col)

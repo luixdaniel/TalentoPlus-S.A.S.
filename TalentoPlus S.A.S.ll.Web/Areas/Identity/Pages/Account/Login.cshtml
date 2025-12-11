@@ -1,0 +1,71 @@
+@page
+@model LoginModel
+
+@{
+    ViewData["Title"] = "Iniciar Sesión";
+}
+
+<div class="container">
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white text-center">
+                    <h3 class="mb-0">
+                        <i class="bi bi-shield-lock-fill"></i> TalentoPlus S.A.S.
+                    </h3>
+                    <p class="mb-0 small">Sistema de Gestión de Empleados</p>
+                </div>
+                <div class="card-body p-4">
+                    <h4 class="text-center mb-4">Iniciar Sesión</h4>
+                    
+                    <form id="account" method="post">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+                        
+                        <div class="mb-3">
+                            <label asp-for="Input.Email" class="form-label">
+                                <i class="bi bi-envelope"></i> Correo Electrónico
+                            </label>
+                            <input asp-for="Input.Email" class="form-control" autocomplete="username" 
+                                   placeholder="admin@talento.com" aria-required="true" />
+                            <span asp-validation-for="Input.Email" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label asp-for="Input.Password" class="form-label">
+                                <i class="bi bi-key"></i> Contraseña
+                            </label>
+                            <input asp-for="Input.Password" class="form-control" autocomplete="current-password" 
+                                   placeholder="••••••••" aria-required="true" type="password" />
+                            <span asp-validation-for="Input.Password" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="mb-3 form-check">
+                            <input class="form-check-input" asp-for="Input.RememberMe" />
+                            <label class="form-check-label" asp-for="Input.RememberMe">
+                                Recordarme
+                            </label>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button id="login-submit" type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-box-arrow-in-right"></i> Iniciar Sesión
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div class="text-center mt-3">
+                        <small class="text-muted">
+                            Usuario por defecto: <strong>admin@talento.com</strong><br>
+                            Contraseña: <strong>Admin123!</strong>
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+}

@@ -1,0 +1,40 @@
+# Directories
+**/bin/
+**/obj/
+**/out/
+**/node_modules/
+**/.vs/
+**/.vscode/
+**/.idea/
+
+# Files
+**/*.user
+**/*.suo
+**/.DS_Store
+**/Thumbs.db
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+**/*.md
+!README.md
+
+# Docker
+**/Dockerfile
+**/docker-compose*.yml
+**/.dockerignore
+
+# Logs
+**/logs/
+**/*.log
+
+# Test results
+**/TestResults/
+**/*.trx
+
+# Temporary files
+**/tmp/
+**/temp/

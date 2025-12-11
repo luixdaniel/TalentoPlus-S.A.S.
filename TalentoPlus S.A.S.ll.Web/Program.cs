@@ -45,6 +45,12 @@ builder.Services.AddScoped<IDepartmentRepository, DepartmentRepository>();
 // Dependency Injection - Services (Business Logic Layer)
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<IDepartmentService, DepartmentService>();
+builder.Services.AddScoped<IExcelImportService, ExcelImportService>();
+builder.Services.AddScoped<IPdfService, PdfService>();
+builder.Services.AddScoped<IAiQueryService, GeminiAiService>();
+
+// HttpClient for AI services
+builder.Services.AddHttpClient();
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
@@ -75,10 +81,17 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Admin Area Route (MVC)
+app.MapControllerRoute(
+    name: "admin",
+    pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
+
+// Default Route
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
+// Map Razor Pages (for Identity)
 app.MapRazorPages();
 
 app.Run();

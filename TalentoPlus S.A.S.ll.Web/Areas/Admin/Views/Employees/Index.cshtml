@@ -1,4 +1,4 @@
-@model IEnumerable<TalentoPlus_S.A.S.ll.Web.Data.Entities.Employee>
+@model IEnumerable<TalentoPlus_S.A.S.ll.Web.Models.ViewModels.EmployeeViewModel>
 @{
     ViewData["Title"] = "Gestión de Empleados";
 }
@@ -65,19 +65,25 @@
                                 </td>
                                 <td>@employee.Position</td>
                                 <td>
-                                    <span class="badge bg-info">@employee.Department?.Name</span>
+                                    <span class="badge bg-info">@employee.DepartmentName</span>
                                 </td>
                                 <td>$@employee.Salary.ToString("N2")</td>
                                 <td>
                                     @if (employee.Status == TalentoPlus_S.A.S.ll.Web.Data.Entities.EmployeeStatus.Active)
                                     {
-                                        <span class="badge bg-success">Activo</span>
+                                        <span class="badge bg-success">@employee.StatusDisplay</span>
                                     }
-                                    else if (employee.Status == TalentoPlus_S.A.S.ll.Web.Data.Entities.EmployeeStatus.Inactive)
+                                    else if (employee.Status == TalentoPlus_S.A.S.ll.Web.Data.Entities.EmployeeStatus.Vacation)
                                     {
-                                        <span class="badge bg-danger">Inactivo</span>
+                                        <span class="badge bg-warning text-dark">@employee.StatusDisplay</span>
                                     }
                                     else
+                                    {
+                                        <span class="badge bg-danger">@employee.StatusDisplay</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    @if (false)
                                     {
                                         <span class="badge bg-warning">Vacaciones</span>
                                     }
@@ -86,6 +92,9 @@
                                     <div class="btn-group" role="group">
                                         <a asp-action="Details" asp-route-id="@employee.Id" class="btn btn-sm btn-info" title="Ver detalles">
                                             <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a asp-action="GenerateResumePdf" asp-route-id="@employee.Id" class="btn btn-sm btn-success" title="Generar PDF" target="_blank">
+                                            <i class="bi bi-file-earmark-pdf"></i>
                                         </a>
                                         <a asp-action="Edit" asp-route-id="@employee.Id" class="btn btn-sm btn-warning" title="Editar">
                                             <i class="bi bi-pencil"></i>

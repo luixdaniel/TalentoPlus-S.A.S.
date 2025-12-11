@@ -2,8 +2,8 @@ using ApiTalento.Web.DTOs;
 using ApiTalento.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TalentoPlus_S.A.S.ll.Web.Data.Entities;
-using TalentoPlus_S.A.S.ll.Web.Repositories;
+using ApiTalento.Web.Data.Entities;
+using ApiTalento.Web.Repositories;
 
 namespace ApiTalento.Web.Controllers
 {

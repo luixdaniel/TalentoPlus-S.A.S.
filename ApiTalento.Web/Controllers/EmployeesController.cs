@@ -1,11 +1,12 @@
 using System.Security.Claims;
 using ApiTalento.Web.DTOs;
+using ApiTalento.Web.Mappings;
 using ApiTalento.Web.Models.ViewModels;
 using ApiTalento.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TalentoPlus_S.A.S.ll.Web.Data.Entities;
-using TalentoPlus_S.A.S.ll.Web.Repositories;
+using ApiTalento.Web.Data.Entities;
+using ApiTalento.Web.Repositories;
 
 namespace ApiTalento.Web.Controllers
 {
@@ -53,25 +54,7 @@ namespace ApiTalento.Web.Controllers
                     return NotFound(new { message = "Empleado no encontrado" });
                 }
 
-                var employeeDto = new EmployeeDto
-                {
-                    Id = employee.Id,
-                    DocumentNumber = employee.DocumentNumber,
-                    FirstName = employee.FirstName,
-                    LastName = employee.LastName,
-                    BirthDate = employee.BirthDate,
-                    Address = employee.Address,
-                    Phone = employee.Phone,
-                    Email = employee.Email,
-                    Position = employee.Position,
-                    Salary = employee.Salary,
-                    HireDate = employee.HireDate,
-                    Status = employee.Status.ToString(),
-                    EducationLevel = employee.EducationLevel.ToString(),
-                    ProfessionalProfile = employee.ProfessionalProfile,
-                    DepartmentName = employee.Department?.Name ?? "N/A"
-                };
-
+                var employeeDto = employee.ToDto();
                 return Ok(employeeDto);
             }
             catch (Exception ex)
@@ -106,29 +89,11 @@ namespace ApiTalento.Web.Controllers
                     return NotFound(new { message = "Empleado no encontrado" });
                 }
 
-                // Convertir a ViewModel
-                var viewModel = new EmployeeViewModel
-                {
-                    Id = employee.Id,
-                    DocumentNumber = employee.DocumentNumber,
-                    FirstName = employee.FirstName,
-                    LastName = employee.LastName,
-                    BirthDate = employee.BirthDate,
-                    Address = employee.Address,
-                    Phone = employee.Phone,
-                    Email = employee.Email,
-                    Position = employee.Position,
-                    Salary = employee.Salary,
-                    HireDate = employee.HireDate,
-                    Status = employee.Status,
-                    EducationLevel = employee.EducationLevel,
-                    ProfessionalProfile = employee.ProfessionalProfile,
-                    DepartmentId = employee.DepartmentId,
-                    DepartmentName = employee.Department?.Name
-                };
+                // Convertir a DTO
+                var employeeDto = employee.ToDto();
 
                 // Generar PDF
-                var pdfBytes = _pdfService.GenerateEmployeeResumePdf(viewModel);
+                var pdfBytes = _pdfService.GenerateEmployeeResumePdf(employeeDto);
                 var fileName = $"HV_{employee.FirstName}_{employee.LastName}_{DateTime.Now:yyyyMMdd}.pdf";
 
                 _logger.LogInformation($"PDF generado para empleado {employee.Email}");

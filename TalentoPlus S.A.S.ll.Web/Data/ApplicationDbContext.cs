@@ -39,7 +39,10 @@ namespace TalentoPlus_S.A.S.ll.Web.Data
                 new Department { Id = 1, Name = "Logística" },
                 new Department { Id = 2, Name = "Marketing" },
                 new Department { Id = 3, Name = "Recursos Humanos" },
-                new Department { Id = 4, Name = "Operaciones" }
+                new Department { Id = 4, Name = "Operaciones" },
+                new Department { Id = 5, Name = "Ventas" },
+                new Department { Id = 6, Name = "Tecnología" },
+                new Department { Id = 7, Name = "Contabilidad" }
             );
         }
     }

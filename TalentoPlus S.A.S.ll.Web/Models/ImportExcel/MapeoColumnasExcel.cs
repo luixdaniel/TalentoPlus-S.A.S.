@@ -1,4 +1,6 @@
-namespace TalentoPlus_S.A.S.ll.Web.Areas.Admin.Models
+using OfficeOpenXml;
+
+namespace TalentoPlus_S.A.S.ll.Web.Models.ImportExcel
 {
     /// <summary>
     /// Mapeo dinámico de columnas del Excel
@@ -7,6 +9,7 @@ namespace TalentoPlus_S.A.S.ll.Web.Areas.Admin.Models
     public class MapeoColumnasExcel
     {
         // Índices de columnas (base 1, como en Excel)
+        public int? ColumnaDocumento { get; set; }
         public int? ColumnaNombres { get; set; }
         public int? ColumnaApellidos { get; set; }
         public int? ColumnaEmail { get; set; }
@@ -65,6 +68,55 @@ namespace TalentoPlus_S.A.S.ll.Web.Areas.Admin.Models
         }
 
         /// <summary>
+        /// Crea el mapeo directamente desde el worksheet de Excel
+        /// Detecta automáticamente el orden de las columnas sin crear lista intermedia
+        /// </summary>
+        public static MapeoColumnasExcel CrearDesdeWorksheet(OfficeOpenXml.ExcelWorksheet worksheet, int maxCol)
+        {
+            var mapeo = new MapeoColumnasExcel();
+
+            for (int col = 1; col <= maxCol; col++)
+            {
+                var headerValue = worksheet.Cells[1, col].Value?.ToString()?.Trim();
+                if (string.IsNullOrWhiteSpace(headerValue))
+                    continue;
+
+                var header = NormalizarHeader(headerValue);
+
+                if (CoincideHeader(header, "documento", "document", "identificacion", "cedula", "dni") && !header.Contains("apellido"))
+                    mapeo.ColumnaDocumento = col;
+                else if (CoincideHeader(header, "nombres", "nombre", "first name", "firstname"))
+                    mapeo.ColumnaNombres = col;
+                else if (CoincideHeader(header, "apellidos", "apellido", "last name", "lastname"))
+                    mapeo.ColumnaApellidos = col;
+                else if (CoincideHeader(header, "email", "correo", "correo electronico", "e-mail", "mail"))
+                    mapeo.ColumnaEmail = col;
+                else if (CoincideHeader(header, "telefono", "teléfono", "phone", "celular", "movil"))
+                    mapeo.ColumnaTelefono = col;
+                else if (CoincideHeader(header, "direccion", "dirección", "address", "domicilio"))
+                    mapeo.ColumnaDireccion = col;
+                else if (CoincideHeader(header, "fechanacimiento", "fechadenacimiento", "fechanac", "nacimiento", "birthdate"))
+                    mapeo.ColumnaFechaNacimiento = col;
+                else if (CoincideHeader(header, "fechaingreso", "fechadeingreso", "ingreso", "hiredate"))
+                    mapeo.ColumnaFechaIngreso = col;
+                else if (CoincideHeader(header, "cargo", "position", "puesto", "rol", "posicion"))
+                    mapeo.ColumnaCargo = col;
+                else if (CoincideHeader(header, "salario", "salary", "sueldo", "remuneracion", "pago"))
+                    mapeo.ColumnaSalario = col;
+                else if (CoincideHeader(header, "estado", "status", "state", "estatus"))
+                    mapeo.ColumnaEstado = col;
+                else if (CoincideHeader(header, "niveleducativo", "educacion", "education", "nivel"))
+                    mapeo.ColumnaNivelEducativo = col;
+                else if (CoincideHeader(header, "departamento", "department", "area", "área", "seccion"))
+                    mapeo.ColumnaDepartamento = col;
+                else if (CoincideHeader(header, "perfilprofesional", "perfil", "profile", "descripcion"))
+                    mapeo.ColumnaPerfilProfesional = col;
+            }
+
+            return mapeo;
+        }
+
+        /// <summary>
         /// Crea el mapeo desde los headers de Excel
         /// Detecta automáticamente el orden de las columnas
         /// </summary>
@@ -77,7 +129,9 @@ namespace TalentoPlus_S.A.S.ll.Web.Areas.Admin.Models
                 var header = NormalizarHeader(headers[i]);
                 var columna = i + 1; // Excel usa base 1
 
-                if (CoincideHeader(header, "nombres", "nombre", "first name", "firstname"))
+                if (CoincideHeader(header, "documento", "document", "identificacion", "cedula", "dni") && !header.Contains("apellido"))
+                    mapeo.ColumnaDocumento = columna;
+                else if (CoincideHeader(header, "nombres", "nombre", "first name", "firstname"))
                     mapeo.ColumnaNombres = columna;
                 else if (CoincideHeader(header, "apellidos", "apellido", "last name", "lastname"))
                     mapeo.ColumnaApellidos = columna;
@@ -87,9 +141,9 @@ namespace TalentoPlus_S.A.S.ll.Web.Areas.Admin.Models
                     mapeo.ColumnaTelefono = columna;
                 else if (CoincideHeader(header, "direccion", "dirección", "address", "domicilio"))
                     mapeo.ColumnaDireccion = columna;
-                else if (CoincideHeader(header, "fecha de nacimiento", "fecha nacimiento", "nacimiento", "birth date", "birthdate"))
+                else if (CoincideHeader(header, "fechanacimiento", "fechadenacimiento", "nacimiento", "birthdate"))
                     mapeo.ColumnaFechaNacimiento = columna;
-                else if (CoincideHeader(header, "fecha de ingreso", "fecha ingreso", "ingreso", "hire date", "hiredate"))
+                else if (CoincideHeader(header, "fechaingreso", "fechadeingreso", "ingreso", "hiredate"))
                     mapeo.ColumnaFechaIngreso = columna;
                 else if (CoincideHeader(header, "cargo", "position", "puesto", "rol", "posicion"))
                     mapeo.ColumnaCargo = columna;
@@ -97,11 +151,11 @@ namespace TalentoPlus_S.A.S.ll.Web.Areas.Admin.Models
                     mapeo.ColumnaSalario = columna;
                 else if (CoincideHeader(header, "estado", "status", "state", "estatus"))
                     mapeo.ColumnaEstado = columna;
-                else if (CoincideHeader(header, "nivel educativo", "educacion", "education level", "education", "nivel"))
+                else if (CoincideHeader(header, "niveleducativo", "educacion", "education", "nivel"))
                     mapeo.ColumnaNivelEducativo = columna;
-                else if (CoincideHeader(header, "departamento", "department", "area", "área", "seccion"))
+                else if (CoincideHeader(header, "departamento", "department", "area", "seccion"))
                     mapeo.ColumnaDepartamento = columna;
-                else if (CoincideHeader(header, "perfil profesional", "perfil", "profile", "professional profile", "descripcion"))
+                else if (CoincideHeader(header, "perfilprofesional", "perfil", "profile", "descripcion"))
                     mapeo.ColumnaPerfilProfesional = columna;
             }
 
@@ -111,13 +165,17 @@ namespace TalentoPlus_S.A.S.ll.Web.Areas.Admin.Models
         private static string NormalizarHeader(string header)
         {
             return header.ToLower().Trim()
+                .Replace(" ", "")  // Quitar espacios
                 .Replace("á", "a").Replace("é", "e").Replace("í", "i")
                 .Replace("ó", "o").Replace("ú", "u").Replace("ñ", "n");
         }
 
-        private static bool CoincideHeader(string header, params string[] patrones)
+        private static bool CoincideHeader(string headerNormalizado, params string[] patrones)
         {
-            return patrones.Any(p => header.Contains(NormalizarHeader(p)));
+            // El header ya viene normalizado, solo normalizar los patrones
+            return patrones.Any(p => headerNormalizado.Contains(p.ToLower().Trim()
+                .Replace("á", "a").Replace("é", "e").Replace("í", "i")
+                .Replace("ó", "o").Replace("ú", "u").Replace("ñ", "n")));
         }
     }
 }

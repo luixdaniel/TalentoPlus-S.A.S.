@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  # API REST
+  api:
+    build:
+      context: .
+      dockerfile: ApiTalento.Web/Dockerfile
+    container_name: talento-api
+    ports:
+      - "5109:5108"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5108
+      - ConnectionStrings__DefaultConnection=User Id=postgres.xapmryeiakfpdvyzvtrs;Password=Luis1206;Server=aws-0-us-west-2.pooler.supabase.com;Port=5432;Database=postgres
+      - Jwt__Key=TalentoPlus_Super_Secret_Key_2024_MinLength32Characters
+      - Jwt__Issuer=TalentoPlus.API
+      - Jwt__Audience=TalentoPlus.Employees
+      - Jwt__ExpirationHours=24
+      - Email__SmtpServer=smtp.gmail.com
+      - Email__SmtpPort=587
+      - Email__FromName=TalentoPlus S.A.S.
+      - Email__FromAddress=noreply@talentoplussas.com
+      - Email__Username=ceraluis4@gmail.com
+      - Email__Password=ffsyujnzqtrmeyva
+    networks:
+      - talento-network
+    restart: unless-stopped
+
+  # Aplicación Web (Panel Admin)
+  web:
+    build:
+      context: .
+      dockerfile: TalentoPlus S.A.S.ll.Web/Dockerfile
+    container_name: talento-web
+    ports:
+      - "5041:5040"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5040
+      - ConnectionStrings__DefaultConnection=User Id=postgres.xapmryeiakfpdvyzvtrs;Password=Luis1206;Server=aws-0-us-west-2.pooler.supabase.com;Port=5432;Database=postgres
+      - Gemini__ApiKey=AIzaSyCwAmYwbtOYXgBZGQvwQowOeYFRIY6ggqc
+    depends_on:
+      - api
+    networks:
+      - talento-network
+    restart: unless-stopped
+
+networks:
+  talento-network:
+    driver: bridge

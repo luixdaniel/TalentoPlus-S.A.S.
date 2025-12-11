@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using TalentoPlus_S.A.S.ll.Web.Data.Entities;
 using TalentoPlus_S.A.S.ll.Web.Services;
+using TalentoPlus_S.A.S.ll.Web.Models.ViewModels;
+using TalentoPlus_S.A.S.ll.Web.Extensions;
 
 namespace TalentoPlus_S.A.S.ll.Web.Areas.Admin.Controllers
 {
@@ -12,18 +14,21 @@ namespace TalentoPlus_S.A.S.ll.Web.Areas.Admin.Controllers
     {
         private readonly IEmployeeService _employeeService;
         private readonly IDepartmentService _departmentService;
+        private readonly IPdfService _pdfService;
 
-        public EmployeesController(IEmployeeService employeeService, IDepartmentService departmentService)
+        public EmployeesController(IEmployeeService employeeService, IDepartmentService departmentService, IPdfService pdfService)
         {
             _employeeService = employeeService;
             _departmentService = departmentService;
+            _pdfService = pdfService;
         }
 
         // GET: Admin/Employees
         public async Task<IActionResult> Index()
         {
             var employees = await _employeeService.GetAllEmployeesAsync();
-            return View(employees);
+            var viewModels = employees.ToViewModelList();
+            return View(viewModels);
         }
 
         // GET: Admin/Employees/Details/5
@@ -41,29 +46,31 @@ namespace TalentoPlus_S.A.S.ll.Web.Areas.Admin.Controllers
                 return NotFound();
             }
 
-            return View(employee);
+            var viewModel = employee.ToViewModel();
+            return View(viewModel);
         }
 
         // GET: Admin/Employees/Create
         public async Task<IActionResult> Create()
         {
             await LoadDepartments();
-            return View();
+            return View(new EmployeeViewModel());
         }
 
         // POST: Admin/Employees/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Employee employee)
+        public async Task<IActionResult> Create(EmployeeViewModel viewModel)
         {
             if (!ModelState.IsValid)
             {
                 await LoadDepartments();
-                return View(employee);
+                return View(viewModel);
             }
 
             try
             {
+                var employee = viewModel.ToEntity();
                 await _employeeService.CreateEmployeeAsync(employee);
                 TempData["Success"] = "Empleado creado exitosamente";
                 return RedirectToAction(nameof(Index));
@@ -72,7 +79,7 @@ namespace TalentoPlus_S.A.S.ll.Web.Areas.Admin.Controllers
             {
                 ModelState.AddModelError("", $"Error al crear el empleado: {ex.Message}");
                 await LoadDepartments();
-                return View(employee);
+                return View(viewModel);
             }
         }
 
@@ -91,16 +98,17 @@ namespace TalentoPlus_S.A.S.ll.Web.Areas.Admin.Controllers
                 return NotFound();
             }
 
+            var viewModel = employee.ToViewModel();
             await LoadDepartments();
-            return View(employee);
+            return View(viewModel);
         }
 
         // POST: Admin/Employees/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, Employee employee)
+        public async Task<IActionResult> Edit(int id, EmployeeViewModel viewModel)
         {
-            if (id != employee.Id)
+            if (id != viewModel.Id)
             {
                 return NotFound();
             }
@@ -108,11 +116,18 @@ namespace TalentoPlus_S.A.S.ll.Web.Areas.Admin.Controllers
             if (!ModelState.IsValid)
             {
                 await LoadDepartments();
-                return View(employee);
+                return View(viewModel);
             }
 
             try
             {
+                var employee = await _employeeService.GetEmployeeByIdAsync(id);
+                if (employee == null)
+                {
+                    return NotFound();
+                }
+
+                employee.UpdateEntity(viewModel);
                 await _employeeService.UpdateEmployeeAsync(employee);
                 TempData["Success"] = "Empleado actualizado exitosamente";
                 return RedirectToAction(nameof(Index));
@@ -121,7 +136,7 @@ namespace TalentoPlus_S.A.S.ll.Web.Areas.Admin.Controllers
             {
                 ModelState.AddModelError("", $"Error al actualizar el empleado: {ex.Message}");
                 await LoadDepartments();
-                return View(employee);
+                return View(viewModel);
             }
         }
 
@@ -140,7 +155,8 @@ namespace TalentoPlus_S.A.S.ll.Web.Areas.Admin.Controllers
                 return NotFound();
             }
 
-            return View(employee);
+            var viewModel = employee.ToViewModel();
+            return View(viewModel);
         }
 
         // POST: Admin/Employees/Delete/5
@@ -216,6 +232,37 @@ namespace TalentoPlus_S.A.S.ll.Web.Areas.Admin.Controllers
             {
                 ModelState.AddModelError("", $"Error inesperado: {ex.Message}");
                 return View();
+            }
+        }
+
+        // GET: Admin/Employees/GenerateResumePdf/5
+        public async Task<IActionResult> GenerateResumePdf(int? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var employee = await _employeeService.GetEmployeeByIdAsync(id.Value);
+            
+            if (employee == null)
+            {
+                return NotFound();
+            }
+
+            try
+            {
+                var viewModel = employee.ToViewModel();
+                var pdfBytes = _pdfService.GenerateEmployeeResumePdf(viewModel);
+                
+                var fileName = $"HV_{employee.FirstName}_{employee.LastName}_{DateTime.Now:yyyyMMdd}.pdf";
+                
+                return File(pdfBytes, "application/pdf", fileName);
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"Error al generar el PDF: {ex.Message}";
+                return RedirectToAction(nameof(Details), new { id });
             }
         }
 

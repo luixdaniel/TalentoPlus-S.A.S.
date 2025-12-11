@@ -1,8 +1,8 @@
 using ApiTalento.Web.DTOs;
-using ApiTalento.Web.Services;
+using ApiTalento.Web.Mappings;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TalentoPlus_S.A.S.ll.Web.Repositories;
+using ApiTalento.Web.Repositories;
 
 namespace ApiTalento.Web.Controllers
 {
@@ -33,11 +33,7 @@ namespace ApiTalento.Web.Controllers
             try
             {
                 var departments = await _departmentRepository.GetAllAsync();
-                var departmentDtos = departments.Select(d => new DepartmentDto
-                {
-                    Id = d.Id,
-                    Name = d.Name
-                }).ToList();
+                var departmentDtos = departments.Select(d => d.ToDto()).ToList();
 
                 return Ok(departmentDtos);
             }

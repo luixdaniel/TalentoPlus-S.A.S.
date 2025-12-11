@@ -1,5 +1,5 @@
 using ApiTalento.Web.DTOs;
-using TalentoPlus_S.A.S.ll.Web.Data.Entities;
+using ApiTalento.Web.Data.Entities;
 
 namespace ApiTalento.Web.Mappings
 {

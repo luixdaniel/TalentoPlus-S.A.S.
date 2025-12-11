@@ -1,4 +1,4 @@
-namespace TalentoPlus_S.A.S.ll.Web.Areas.Admin.Models
+namespace TalentoPlus_S.A.S.ll.Web.Models.ImportExcel
 {
     /// <summary>
     /// Configuración para importación masiva de empleados
